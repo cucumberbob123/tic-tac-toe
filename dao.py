@@ -31,7 +31,7 @@ class DAO:
         if row is None:
             return None
 
-        return User(row[0], username, row[1])
+        return User(self, row[0], username, row[1])
 
     def getUserByUid(self, uid):
         """
@@ -51,7 +51,7 @@ class DAO:
         if row is None:
             return None
 
-        return User(uid, row[0], row[1])
+        return User(self, uid, row[0], row[1])
 
     def registerNewUser(self, username, shadowEntry):
         """
@@ -99,4 +99,25 @@ class DAO:
         c.execute("select winner_id, loser_id, time from games where game_id=?",
                   (gameID,))
 
-        return self.connection.fetchone()
+        return c.fetchone()
+
+    def getScore(self, uid):
+        """
+        Go to the datastore and calculate won - loss games.
+
+        Args:
+            uid: int id of desired user
+
+        """
+        c = self.connection.cursor()
+
+        # there is almost certainly a better way to do this
+        c.execute("select count(*) from games where winner_id=?",
+                  (uid,))
+        won = c.fetchone()[0]
+
+        c.execute("select count(*) from games where loser_id=?",
+                  (uid,))
+        lost = c.fetchone()[0]
+
+        return won - lost

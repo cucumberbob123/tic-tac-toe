@@ -1,4 +1,4 @@
-from authentication import login, register, getPassword, getUsername
+from authentication import User
 
 
 class Player:
@@ -10,27 +10,21 @@ class Player:
         creds: user's credentials to log in
 
     Attributes:
-        score: the user's score so far
+        id: the player's id
+        piece: the player's game piece
+        name: username (if present) or their game piece
 
     """
 
-    def __init__(self, piece, creds=None):
-        if creds is not None:
-            if not self.validCredentials(creds):
-                raise ValueError("Credentials are invalid")
-            else:
-                self.creds = creds
+    def __init__(self, piece, user=None):
+        self.id = user.uid
 
-        self.score = 0
         self.piece = piece
 
-        try:
-            self.name = creds["username"]
-        except TypeError:
+        if user.username is not None:
+            self.name = user.username
+        else:
             self.name = piece
-
-    def incScore(self):
-        self.score += 1
 
     def validCredentials(self, credentials):
         return True
@@ -54,7 +48,7 @@ def getPlayerByPiece(piece, players):
     return None
 
 
-def getPlayers(pieces):
+def getPlayers(pieces, dao):
     """
     Go to stdout to get len(pieces) to login, register or remain anonymous.
 
@@ -62,35 +56,14 @@ def getPlayers(pieces):
         pieces: a list of string game pieces
 
     """
+
+    print("Welcome to tic - tac - toe!\n\n")
+
     players = []
     for i in range(len(pieces)):
-        print(f"Player {i+1}")
-        if input("Type skip to skip login: ") == "skip":
-            players.append(Player(pieces[i]))
-            print("\n\n")
-            continue
-
-        userHasAccount = ""
-        while userHasAccount not in ['y', 'n']:
-            userHasAccount = input("Do you have an account [y/n]: ")
-
-        if userHasAccount == 'y':
-            username = password = ""
-            while not login(username, password, ""):
-                username = getUsername()
-                password = getPassword()
-
-            print("Successfully logged in")
-
-        else:
-            username = password = ""
-            while not register(username, password, ""):
-                username = getUsername()
-                password = getPassword()
-            print("Account successfully created!")
-
-        creds = {"username": username, "password": password}
-        players.append(Player(pieces[i], creds))
+        print(f"Player {i + 1}")
+        user = User.getUserFromInput(dao, print, input)
+        players.append(Player(pieces[i], user))
 
         print("\n\n")
 

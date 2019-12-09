@@ -1,10 +1,16 @@
-from Game import Game, fetchCoordinate
-from Player import getPlayerByPiece, getPlayers
-
 import datetime
+from Game import Game, fetchCoordinate
+from Player import getPlayers
+
+from dao import DAO
+import sqlite3
+
+connection = sqlite3.connect("scores.db")
+dao = DAO(connection)
+
 
 pieces = ['x', 'o']
-players = getPlayers(pieces)
+players = getPlayers(pieces, dao)
 
 game = Game(3, 3, players)
 
@@ -29,7 +35,11 @@ while not game.won():
             print("looks like there's already a piece there, try elsewhere")
     print(game)
 
-print(f'{getPlayerByPiece(game.winner, players).name} wins')
+print(f'{game.winner.name} wins')
+
+print(f"{game.loser.name} loses")
 
 now = datetime.datetime.now()
-print(now)
+
+if not all(player.id == 0 for player in players):
+    dao.saveGame(game.winner.id, game.loser.id)

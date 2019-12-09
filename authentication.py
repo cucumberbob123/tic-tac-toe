@@ -4,10 +4,8 @@ import hashlib
 
 
 def getUsername():
-    username = ""
-    while not username.isalpha():
-        username = input("Username: ")
-    return username
+    """TODO ensure username is in dao before returning"""
+    return input("Username")
 
 
 def getPassword():
@@ -28,11 +26,12 @@ def register(username, password, dao):
 
 class Authenticator:
     """
-    Abstraction to handle loggin in/ registration.
+    Abstraction to handle loggin in/registration.
 
-    NOTE the authenticator stores the salt/hash combination as a
-         shadow entry. This is the same format as etc/shadow in a linux
-         system. the format is ${hash_type}${salt}${password}
+    The authenticator stores the salt/hash combination as an instance of
+    ShadowEntry. This is an abstraction on top of the same format
+    as etc/shadow in a linux system. the format is:
+        ${hash_type}${salt}${password}
 
     """
 
@@ -44,6 +43,7 @@ class Authenticator:
         return user is not None
 
     def register(self, username, password):
+        """Register a new user."""
         if username == "" or password == "":
             return
 
@@ -63,7 +63,8 @@ class Authenticator:
         if not self.userExists(username):
             raise UsernameError("Username not found")
 
-        return self.getShadowEntry(username).validate(password)
+        if not self.getShadowEntry(username).validate(password):
+            raise PasswordError("Incorrect password")
 
     def getShadowEntry(self, username):
         user = self.dao.getUserByUsername(username)
@@ -71,6 +72,10 @@ class Authenticator:
 
 
 class UsernameError(Exception):
+    pass
+
+
+class PasswordError(Exception):
     pass
 
 
@@ -125,10 +130,68 @@ class ShadowEntry:
 
 class User:
     # TODO make this good
-    def __init__(self, uid, username, password):
+    def __init__(self, dao, uid, username, password):
+        self.dao = dao
+
         self.uid = uid
         self.username = username
         self.password = password
+
+    @classmethod
+    def getUserFromInput(cls, dao, out, in_):
+        # Improve me
+        """
+        Go to given out/input and get user to regiter or log in.
+
+        Args:
+            dao: dao instance to get login info from
+            out: function to call to output text
+            in_: function to call to get input from user
+                 (note _ to avoid naming conflict)
+        Returns:
+            User: logged in instance of User
+
+        """
+        if in_("Type skip to skip login: ") == "skip":
+            # uid=0 refers to anonymous user in db, useful for scoring etc.
+            return User(dao, 0, None, None)
+
+        userHasAccount = ""
+        while userHasAccount not in ['y', 'n']:
+            userHasAccount = in_("Do you have an account [y/n]: ")
+
+        authn = Authenticator(dao)
+
+        if userHasAccount == 'y':
+            username = getUsername()
+            password = getPassword()
+            while True:
+                try:
+                    authn.login(username, password)
+                    break
+
+                except UsernameError:
+                    out("Wrong username/password combo")
+                    username = getUsername()
+                    password = getPassword()
+
+                except PasswordError:
+                    out("Wrong password")
+                    password = getPassword()
+
+            out("Logged in!")
+            return dao.getUserByUsername(username)
+
+        else:
+            username = getUsername()
+            password = getPassword()
+            while not authn.register(username, password):
+                out("That username is already taken")
+                username = getUsername()
+                password = getPassword()
+
+            out("Registered!")
+            return dao.getUserByUsername(username)
 
 
 class Attempt:

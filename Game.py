@@ -1,4 +1,4 @@
-from Player import Player
+from Player import Player, getPlayerByPiece
 
 
 class Game:
@@ -37,13 +37,22 @@ class Game:
         self.board[self.y - 1 - y][x] = team
         return True
 
+    def handleWin(self, winningPiece):
+        self.winner = getPlayerByPiece(winningPiece, self.players)
+        winnerIndex = self.players.index(self.winner)
+
+        self.players.pop(winnerIndex)
+        self.loser = self.players[0]
+
     def won(self):
+        """This is a mess."""
+
         # check verticals
         for i in range(len(self.board)):
             if self.board[i][0] == '-':
                 continue
             if all(x == self.board[i][0] for x in self.board[i]):
-                self.winner = self.board[i][0]
+                self.handleWin(getPlayerByPiece(self.board[i][0]))
                 return True
 
         # check horizontals
@@ -51,7 +60,7 @@ class Game:
             if self.board[0][i] == '-':
                 continue
             if all(self.board[x][i] == self.board[0][i] for x in range(self.x)):
-                self.winner = self.board[0][i]
+                self.handleWin(self.board[0][i])
                 return True
 
         # check diagonals, iff it's a square board
@@ -59,13 +68,13 @@ class Game:
             # checks -ve diags
             if self.board[self.y - 1][self.x - 1] != '-':
                 if all(self.board[self.y - 1 - i][i] == self.board[self.y - 1][self.x - 1] for i in range(self.x)):
-                    self.winner = self.board[self.y - 1][self.x - 1]
+                    self.handleWin(self.board[self.y - 1][self.x - 1])
                     return True
 
             # checks +ve diags
             if self.board[self.y - 1][0] != '-':
                 if all(self.board[i][self.x - 1 - i] == self.board[self.y - 1][0] for i in range(self.x)):
-                    self.winner = self.board[self.y - 1][0]
+                    self.handleWin(self.board[self.y - 1][0])
                     return True
 
         return False
@@ -76,10 +85,10 @@ def fetchCoordinate(axis):
 
     if coordinate == '':
         print('please enter something')
-        fetchCoordinate(axis)
+        return int(fetchCoordinate(axis))
 
     if coordinate not in '1234567890':
         print('please guess a number')
-        fetchCoordinate(axis)
+        return int(fetchCoordinate(axis))
 
     return int(coordinate)
